@@ -6,13 +6,14 @@
     "iisExpress": {
       "applicationUrl": "http://localhost:65058",
       "sslPort": 44372
-    }
+      
+}
   },
   "profiles": {
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
-      "launchUrl": "weatherforecast",
+      "launchUrl": "api/v1/Notification",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -28,3 +29,4 @@
     }
   }
 }
+
