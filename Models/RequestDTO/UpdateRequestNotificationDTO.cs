@@ -7,6 +7,7 @@ namespace OpenempApiNotifications.Models.RequestDTO
 {
     public class UpdateRequestNotificationDTO
     {
+        public Guid NotificationId { get; set; }
         public string NotificationMessage { get; set; }
         public bool IsRead { get; set; }
     }

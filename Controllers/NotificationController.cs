@@ -4,7 +4,6 @@ using OpenempApiNotifications.Models;
 using OpenempApiNotifications.Models.ResponseDTO;
 using System;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 
 namespace OpenempApiNotification.Controllers //OpenempApiNotification
 {
@@ -37,12 +36,8 @@ namespace OpenempApiNotification.Controllers //OpenempApiNotification
                 QueryNotification = QueryNotification.Where(x => x.Sender == NotificationSender);
             }
 
+            QueryNotification = QueryNotification.OrderBy(x => x.CreatedOn);
             return this.Ok(QueryNotification.Select(s => Mapper.Map<NotificationResponseDTO>(s)));
-
-
-            //var notifications = DbContext.Notification.Where(e => e.IsDeleted == false).FirstOrDefault();
-            //Query = Query.Where(x => x.IsDeleted == false); // to get all notifications which are not deleted
-            //return this.Ok(notifications);
         }
 
         [HttpGet("{Id}")]  //Attribiute
@@ -91,7 +86,6 @@ namespace OpenempApiNotification.Controllers //OpenempApiNotification
         }
         #endregion
 
-
         #region HttpDelete
         [HttpDelete]
         public IActionResult DeleteNotification(Guid IdNotification)
@@ -104,6 +98,6 @@ namespace OpenempApiNotification.Controllers //OpenempApiNotification
             CurrentNotification.IsDeleted = true;
             return this.NoContent();
         }
-        #endregion²
+        #endregion
     }
 }

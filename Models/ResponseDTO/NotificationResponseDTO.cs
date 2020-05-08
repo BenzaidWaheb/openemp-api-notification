@@ -7,6 +7,7 @@ namespace OpenempApiNotifications.Models.ResponseDTO
 {
     public class NotificationResponseDTO
     {
+        public Guid NotificationId { get; set; }
         public string NotificationMessage { get; set; }
         public string Reciever { get; set; }
         public string Sender { get; set; }
