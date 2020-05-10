@@ -16,6 +16,6 @@ namespace OpenempApiNotifications.Models.RequestDTO
         [Required]
         public string Reciever { get; set; }
         [Required]
-        public DateTime CreatedOn { get; set; } //CreatedAt
+        public DateTime CreatedOn { get; set; } = DateTime.Now;
     }
 }

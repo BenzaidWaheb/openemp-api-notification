@@ -6,11 +6,8 @@ namespace OpenempApiNotifications.Models
     public class Notification
     {
         public Guid NotificationId { get; set; }
-        [Required]
         public string NotificationMessage { get; set; }
-        [Required]
         public string Reciever { get; set; }
-        [Required]
         public string Sender { get; set; }
         public bool IsRead { get; set; }
         public bool IsDeleted { get; set; }

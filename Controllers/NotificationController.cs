@@ -1,14 +1,16 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using OpenempApiNotification.Models.RequestDTO;
 using OpenempApiNotifications.Models;
+using OpenempApiNotifications.Models.RequestDTO;
 using OpenempApiNotifications.Models.ResponseDTO;
 using System;
 using System.Linq;
 
-namespace OpenempApiNotification.Controllers //OpenempApiNotification
+namespace OpenempApiNotification.Controllers
 {
     [Route("api/v1/Notification")]
-    [ApiController] //1-Attribiute to verify the comming data for validation, and send it to actions. // 2-automatically identify the request emplacement (if it's from URL,header,body ..) 
+    [ApiController]
     public class NotificationController : ControllerBase
     {
         private readonly IMapper Mapper;
@@ -23,65 +25,78 @@ namespace OpenempApiNotification.Controllers //OpenempApiNotification
 
         #region HttpGet
         [HttpGet]  //Attribiute
-        public IActionResult GetAllNotifications([FromQuery] string NotificationReceiver, [FromQuery] string NotificationSender) //IActionResult : Interface => status
-        {//[FromQuery] string SearchingString, string orderby, [FromQuery] PagingDTO paging
-            var QueryNotification = DbContext.Notification.AsQueryable();
-            QueryNotification = QueryNotification.Where(x => x.IsDeleted == false);
-            if (!string.IsNullOrEmpty(NotificationReceiver))
+        public IActionResult GetAllNotifications(string NotificationReceiver, string NotificationSender, [FromQuery]GroupingNotificationDTO GroupingDTO) //IActionResult : Interface => status
+        {
+            try
             {
-                QueryNotification = QueryNotification.Where(x => x.Reciever == NotificationReceiver);
-            }
-            if (!string.IsNullOrEmpty(NotificationSender))
-            {
-                QueryNotification = QueryNotification.Where(x => x.Sender == NotificationSender);
-            }
+                var QueryNotification = this.DbContext.Notification.AsQueryable();
+                QueryNotification = QueryNotification.Where(x => x.IsDeleted == false);
 
-            QueryNotification = QueryNotification.OrderBy(x => x.CreatedOn);
-            return this.Ok(QueryNotification.Select(s => Mapper.Map<NotificationResponseDTO>(s)));
+                if (!string.IsNullOrEmpty(NotificationReceiver))
+                {
+                    QueryNotification = QueryNotification.Where(x => x.Reciever == NotificationReceiver);
+                }
+                if (!string.IsNullOrEmpty(NotificationSender))
+                {
+                    QueryNotification = QueryNotification.Where(x => x.Sender == NotificationSender);
+                }
+
+                QueryNotification = QueryNotification.OrderBy(x => x.CreatedOn);
+                //QueryNotification = QueryNotification.Skip((GroupingDTO.GroupNumber - 1) * GroupingDTO.RowCounts)
+                //                                     .Take(GroupingDTO.RowCounts);
+
+                return this.Ok(QueryNotification.Select(s => Mapper.Map<NotificationResponseDTO>(s)));
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
         }
 
         [HttpGet("{Id}")]  //Attribiute
         public IActionResult GetNotificationById(Guid Id)
         {
-            var CurrectAuthor = DbContext.Notification.Where(e => e.NotificationId.Equals(Id)).FirstOrDefault();
-            if (CurrectAuthor == null)
+            Notification CurrentNotification = this.DbContext.Notification.Where(e => e.NotificationId.Equals(Id)).FirstOrDefault();
+            if (CurrentNotification == null)
             {
                 return this.NotFound(new { ErrorCode = 404, Message = "Notification not found" });
             }
-            return this.Ok(CurrectAuthor);
+            return this.Ok(Mapper.Map<NotificationResponseDTO>(CurrentNotification));
         }
 
         #endregion
 
         #region HttpPost
         [HttpPost]
-        public IActionResult AddNotification(Notification NotificationToAdd)
+        public IActionResult AddNotification(AddRequestNotificationDTO NotificationToAdd)
         {
             if (string.IsNullOrWhiteSpace(NotificationToAdd.NotificationMessage))
             {
                 return this.BadRequest(new { ErrorCode = 501, Message = "Invalid empty Notification" });
             }
-            var CurrentAuthor = DbContext.Notification.Where(e => e.NotificationId == NotificationToAdd.NotificationId).SingleOrDefault();
-            if (CurrentAuthor != null)
+            if (this.DbContext.Notification.Any(x => x.NotificationMessage == NotificationToAdd.NotificationMessage))
             {
-                return this.Conflict(new { ErrorCode = 502, Message = "Author Id duplicated" });
+                this.ModelState.AddModelError("NotificationMessage", "Duplicate message");
+                return this.ValidationProblem();
             }
-            DbContext.Notification.Add(NotificationToAdd);
-            return this.CreatedAtAction(nameof(this.GetNotificationById), new { Id = NotificationToAdd.NotificationId }, NotificationToAdd);
+            var CurrentNotification = Mapper.Map<Notification>(NotificationToAdd);
+            this.DbContext.Notification.Add(CurrentNotification);
+            this.DbContext.SaveChanges();
+            return this.CreatedAtAction(nameof(this.GetNotificationById), new { Id = CurrentNotification.NotificationId }, NotificationToAdd);
         }
         #endregion
 
         #region HttpPut
         [HttpPut("{Id}")]
-        public IActionResult UpdateNotification(Guid Id)
+        public IActionResult UpdateNotification(Guid Id, UpdateRequestNotificationDTO NotificationToUpdate)
         {
-            var CurrentNotification = DbContext.Notification.Where(x => x.NotificationId == Id).FirstOrDefault();
+            var CurrentNotification = this.DbContext.Notification.Where(x => x.NotificationId == Id).FirstOrDefault();
             if (CurrentNotification == null)
             {
                 return this.NotFound(new { ErrorCode = 404, Message = "Notification not found" });
             }
-            CurrentNotification.IsRead = true;
-            DbContext.SaveChanges();
+            Mapper.Map(NotificationToUpdate, CurrentNotification);
+            this.DbContext.SaveChanges();
             return this.Ok(CurrentNotification);
         }
         #endregion
@@ -90,12 +105,13 @@ namespace OpenempApiNotification.Controllers //OpenempApiNotification
         [HttpDelete]
         public IActionResult DeleteNotification(Guid IdNotification)
         {
-            var CurrentNotification = DbContext.Notification.Where(e => e.NotificationId == IdNotification).SingleOrDefault();
+            var CurrentNotification = this.DbContext.Notification.Where(e => e.NotificationId == IdNotification).SingleOrDefault();
             if (CurrentNotification == null)
             {
                 return this.NotFound(new { ErrorCode = 404, Message = "Author not found" });
             }
             CurrentNotification.IsDeleted = true;
+            this.DbContext.SaveChanges();
             return this.NoContent();
         }
         #endregion
